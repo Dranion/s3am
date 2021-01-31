@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
+
 
 import abc
 import base64
@@ -28,13 +28,13 @@ import sys
 import threading
 import time
 import traceback
-from StringIO import StringIO
+from io import StringIO
 from collections import namedtuple
 from contextlib import closing
 from io import BytesIO
 from operator import itemgetter
 from struct import pack, unpack
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 import pycurl
 from bd2k.util.ec2.credentials import enable_metadata_credential_caching
@@ -97,7 +97,7 @@ class SSEKey( namedtuple( '_SSEKey', 'binary is_master' ) ):
     from the master key the object's URL.
     """
 
-    def __nonzero__( self ):
+    def __bool__( self ):
         return bool( self.binary )
 
     def __str__( self ):
@@ -133,12 +133,10 @@ class SSEKey( namedtuple( '_SSEKey', 'binary is_master' ) ):
                              key_name=operation.key_name )
 
 
-class Operation( object ):
+class Operation( object, metaclass=abc.ABCMeta ):
     """
     A S3AM operation
     """
-
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def run( self ):
@@ -263,11 +261,10 @@ class _S3Connection( S3Connection ):
         return bucket, location
 
 
-class BucketOperation( Operation ):
+class BucketOperation( Operation, metaclass=abc.ABCMeta ):
     """
     An operation on a bucket.
     """
-    __metaclass__ = abc.ABCMeta
 
     def __init__( self, s3_url, **kwargs ):
         """
@@ -310,12 +307,10 @@ class BucketOperation( Operation ):
         return bucket_location_to_region( self.bucket_location )
 
 
-class BucketModification( BucketOperation ):
+class BucketModification( BucketOperation, metaclass=abc.ABCMeta ):
     """
     An operation that modifies a bucket.
     """
-
-    __metaclass__ = abc.ABCMeta
 
     def _get_uploads( self, bucket, limit=max_uploads_per_page, allow_prefix=False ):
         """
@@ -515,7 +510,8 @@ class Upload( BucketModification ):
         for _ in range( num_workers ):
             workers.apply_async( functools.partial( time.sleep, random.random( ) + .5 ) )
 
-        def complete_part( ( part_num_, part ) ):
+        def complete_part(xxx_todo_changeme1 ):
+            ( part_num_, part ) = xxx_todo_changeme1
             if part is not None:
                 assert part_num_ not in completed_parts
                 completed_parts[ part_num_ ] = part
@@ -571,7 +567,7 @@ class Upload( BucketModification ):
                 upload = MultiPartUploadPlus( bucket=bucket,
                                               key_name=self.key_name,
                                               upload_id=upload_id,
-                                              parts=completed_parts.values( ) )
+                                              parts=list(completed_parts.values( )) )
                 upload.complete_upload( headers=headers )
             log.info( 'Completed %s' % self.url )
         except WorkerException:
@@ -750,7 +746,7 @@ class Upload( BucketModification ):
             try:
                 c.perform( )
             except pycurl.error as e:
-                error_code, message = e
+                error_code, message = e.args
                 if error_code == c.E_BAD_DOWNLOAD_RESUME:  # bad range for FTP
                     pass
                 elif error_code == c.E_HTTP_RETURNED_ERROR:
@@ -920,7 +916,7 @@ class Upload( BucketModification ):
 
         # Convert to list of ( part_num, part_size ) pairs, sorted by descending size
         completed_parts = [ (part_num, part.size) for part_num, part in
-            completed_parts.iteritems( ) ]
+            completed_parts.items( ) ]
         completed_parts.sort( key=by_part_size, reverse=True )
 
         # Count # of elements in iterator
@@ -947,9 +943,9 @@ def _init_worker( ):
 # Stolen from https://gist.github.com/fiatmoney/1086393
 
 def _pickle_method( method ):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
+    func_name = method.__func__.__name__
+    obj = method.__self__
+    cls = method.__self__.__class__
     if func_name.startswith( '__' ) and not func_name.endswith( '__' ):  # deal with mangled names
         cls_name = cls.__name__.lstrip( '_' )
         func_name += '_' + cls_name
@@ -967,10 +963,10 @@ def _unpickle_method( func_name, obj, cls ):
     assert False
 
 
-import copy_reg
+import copyreg
 import types
 
-copy_reg.pickle( types.MethodType, _pickle_method, _unpickle_method )
+copyreg.pickle( types.MethodType, _pickle_method, _unpickle_method )
 
 
 class Verify( Operation ):
@@ -1255,7 +1251,7 @@ class Download( BucketOperation ):
             super( Download.DownloadProgress, self ).__init__( )
             self.etag = key.etag
             num_parts = (key.size + self.outer.part_size - 1) / self.outer.part_size
-            self.md5s = [ None ] * num_parts
+            self.md5s = [ None ] * int(num_parts)
             self.file_path = self.outer._derive_dst_path( prefix='.', suffix='.progress' )
             self.file = None
             self.header_size = None
@@ -1304,7 +1300,7 @@ class Download( BucketOperation ):
             return self
 
         def _save( self, f ):
-            f.write( pack( '!LH', self.outer.part_size, len( self.etag ) ) + self.etag )
+            f.write( pack( '!LH', self.outer.part_size, len( self.etag ) ) + self.etag.encode('utf-8') )
             f.flush( )
 
         def _load( self, f ):
@@ -1318,7 +1314,7 @@ class Download( BucketOperation ):
             assert len( etag ) == etag_len
             if etag == self.etag:
                 header_size = f.tell( )
-                for part in xrange( len( self.md5s ) ):
+                for part in range( len( self.md5s ) ):
                     md5 = f.read( 16 )
                     if md5:
                         if md5 != '\0' * 16:
@@ -1338,7 +1334,8 @@ class Download( BucketOperation ):
             if self.file is not None:
                 self.file.close( )
 
-        def record_progress( self, (part, md5) ):
+        def record_progress( self, xxx_todo_changeme ):
+            (part, md5) = xxx_todo_changeme
             assert len( md5 ), 16
             assert md5 != "\0" * 16
             self.md5s[ part ] = md5

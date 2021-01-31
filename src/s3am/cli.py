@@ -47,6 +47,7 @@ def try_main( args=sys.argv[ 1: ] ):
 
 
 def main( args ):
+    print(args)
     o = parse_args( args )
     if o.verbose:
         logging.getLogger( ).setLevel( logging.INFO )
@@ -102,7 +103,7 @@ def main( args ):
         assert False
     result = operation.run( )
     if result is not None:
-        print result
+        print(result)
     return result
 
 
@@ -119,7 +120,7 @@ def default_args( function ):
     if spec.defaults is None:
         return { }
     else:
-        return dict( zip( spec.args[ -len( spec.defaults ): ], spec.defaults ) )
+        return dict( list(zip( spec.args[ -len( spec.defaults ): ], spec.defaults )) )
 
 
 def parse_args( args ):
@@ -218,7 +219,7 @@ def parse_args( args ):
         return parse_sse_key( base64.b64decode( s ) )
 
     def add_sse_opts( sp, helps ):
-        for prefix, sse_help in helps.iteritems( ):
+        for prefix, sse_help in helps.items( ):
             sse_key_gr = sp.add_mutually_exclusive_group( )
             sse_key_gr.add_argument( prefix, metavar='KEY', type=parse_sse_key,
                                      help="The %s. If the key starts with a - (dash) character, "
@@ -393,7 +394,7 @@ class ArgParseOverallHelpAction( argparse._HelpAction ):
         # but better save than sorry
         for subparsers_action in subparsers_actions:
             # get all subparsers and print help
-            for choice, subparser in subparsers_action.choices.items( ):
+            for choice, subparser in list(subparsers_action.choices.items( )):
                 sys.stderr.write( "\n\n\n".format( choice ) )
                 sys.stderr.write( subparser.format_help( ) )
 
@@ -401,5 +402,5 @@ class ArgParseOverallHelpAction( argparse._HelpAction ):
 
 
 def print_version( ):
-    from version import version
+    from .version import version
     return version

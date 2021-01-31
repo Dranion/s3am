@@ -123,7 +123,7 @@ def human2bytes(s):
         s = s[1:]
     num = float(num)
     letter = s.strip()
-    for name, sset in SYMBOLS.items():
+    for name, sset in list(SYMBOLS.items()):
         if letter in sset:
             break
     else:

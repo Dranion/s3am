@@ -35,7 +35,7 @@ help:
 	@echo "$$help"
 
 
-python=python2.7
+python=python3
 tests=src
 
 green=\033[0;32m
@@ -94,7 +94,7 @@ clean: clean_develop clean_sdist clean_pypi
 
 .PHONY: _check_venv
 _check_venv:
-	@$(python) -c 'import sys; sys.exit( int( not hasattr(sys, "real_prefix") ) )' \
+	@$(python) -c 'import sys; sys.exit( int( not hasattr(sys, "base_prefix") ) )' \
 		|| ( echo "$(red)A virtualenv must be active.$(normal)" ; false )
 
 

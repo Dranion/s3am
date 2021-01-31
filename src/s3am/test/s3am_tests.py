@@ -28,7 +28,7 @@ import errno
 
 import itertools
 
-import FTPd
+from . import FTPd
 import boto.exception
 import boto.s3
 import os
@@ -116,7 +116,7 @@ class OperationsTests( unittest.TestCase ):
         self._clean_bucket( self.bucket )
         self.bucket.delete( )
         self.s3.close( )
-        for test_file in self.test_files.itervalues( ):
+        for test_file in self.test_files.values( ):
             os.unlink( test_file.path )
         try:
             os.rmdir( self.ftp_root )
@@ -139,8 +139,8 @@ class OperationsTests( unittest.TestCase ):
                                        key_name=test_file.name )
             s3am.operations.Upload._add_encryption_headers( sse_key, headers )
         key = self.bucket.get_key( test_file.name, headers=headers )
-        self.assertEquals( key.size, test_file.size )
-        self.assertEquals( md5( key.get_contents_as_string( headers=headers ) ), test_file.md5 )
+        self.assertEqual( key.size, test_file.size )
+        self.assertEqual( md5( key.get_contents_as_string( headers=headers ) ), test_file.md5 )
 
     def test_file_urls( self ):
         test_file = self.test_files[ 1 ]
@@ -166,7 +166,7 @@ class OperationsTests( unittest.TestCase ):
             self._assert_key( test_file )
 
     def test_upload( self ):
-        for test_file in self.test_files.itervalues( ):
+        for test_file in self.test_files.values( ):
             s3am.cli.main( concat(
                 'upload', verbose, slots,
                 self.ftp_url( test_file ), self.s3_url( ) ) )
@@ -191,7 +191,7 @@ class OperationsTests( unittest.TestCase ):
                 'upload', verbose, slots, '--exists=skip',
                 self.ftp_url( test_file ), self.s3_url( ) ) )
         except SystemExit as err:
-            self.assertEquals( err.code, 0 )
+            self.assertEqual( err.code, 0 )
         else:
             self.fail( )
         # Now try with --existst=overwrite. This should pass.
@@ -232,7 +232,7 @@ class OperationsTests( unittest.TestCase ):
                 try:
                     self._assert_key( test_file )
                 except boto.exception.S3ResponseError as e:
-                    self.assertEquals( e.status, 400 )
+                    self.assertEqual( e.status, 400 )
                 else:
                     self.fail( 'S3ResponseError(400) should have been raised' )
                 # If a per-file was used ...
@@ -241,7 +241,7 @@ class OperationsTests( unittest.TestCase ):
                     try:
                         self._assert_key( test_file, sse_key=sse_key, is_master=False )
                     except boto.exception.S3ResponseError as e:
-                        self.assertEquals( e.status, 403 )
+                        self.assertEqual( e.status, 403 )
                     else:
                         self.fail( 'S3ResponseError(403) should have been raised' )
                 self._test_download( test_file, args=args )
@@ -379,7 +379,7 @@ class OperationsTests( unittest.TestCase ):
             src_bucket = s3.create_bucket( src_bucket_name, location=src_location )
             try:
                 self._clean_bucket( src_bucket )
-                for test_file in self.test_files.itervalues( ):
+                for test_file in self.test_files.values( ):
                     src_url = self.ftp_url( test_file )
                     src_sse_key = '-0123456789012345678901234567890'
                     dst_sse_key = 'skdjfh9q4rusidfjs9fjsdr9vkfdh833'
@@ -399,7 +399,7 @@ class OperationsTests( unittest.TestCase ):
                 src_bucket.delete( )
 
     def test_verify( self ):
-        for test_file in self.test_files.itervalues( ):
+        for test_file in self.test_files.values( ):
             s3am.cli.main( concat(
                 'upload', verbose, slots,
                 self.ftp_url( test_file ), self.s3_url( ) ) )
@@ -410,7 +410,7 @@ class OperationsTests( unittest.TestCase ):
                     'verify',
                     '--part-size', str( verify_part_size ),
                     self.s3_url( test_file ) ) )
-                self.assertEquals( test_file.md5, md5 )
+                self.assertEqual( test_file.md5, md5 )
 
     def test_generate_key( self ):
         test_dir = mkdtemp( 'test_genkey' )
@@ -432,7 +432,7 @@ class OperationsTests( unittest.TestCase ):
             return entropy
 
         try:
-            for i in xrange( 0, 10 ):
+            for i in range( 0, 10 ):
                 s3am.cli.main( concat( 'generate-sse-key', key_file ) )
                 self.assertTrue( os.path.exists( key_file ) )
                 self.assertEqual( os.stat( key_file ).st_size, 32 )
@@ -443,7 +443,7 @@ class OperationsTests( unittest.TestCase ):
             shutil.rmtree( test_dir )
 
     def test_download( self ):
-        for test_file in self.test_files.itervalues( ):
+        for test_file in self.test_files.values( ):
             s3am.cli.main( concat(
                 'upload', verbose, slots,
                 self.ftp_url( test_file ), self.s3_url( ) ) )
@@ -511,7 +511,7 @@ class OperationsTests( unittest.TestCase ):
 
     def _assert_file( self, test_file, path ):
         with open( path ) as f:
-            self.assertEquals( test_file.md5, md5( f.read( ) ) )
+            self.assertEqual( test_file.md5, md5( f.read( ) ) )
         for suffix in ('.partial', '.progress'):
             self.assertFalse( os.path.exists( path + suffix ) )
 
